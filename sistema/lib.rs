@@ -931,24 +931,8 @@ pub mod sistema {
                 }
             }
         }
-        #[ink(message)]
-        #[cfg(test)]
-        pub fn verificacion_pagos_pendientes(&self) -> Result<Vec<Socio>, String> {
-            match self.get_nivel_permiso() {
-                Ok(_) => {
-                    let vec = Vec::new();
-                    let info = InfoCategoria::new("a".to_string(), self, None);
-                    let socio = Socio::new(1, "a".to_string(), Categorias::A(info.clone()));
 
-                    vec.push(socio.clone());
-                    vec.push(socio.clone());
-                    Ok(vec)
-                }
-                Err(e) => Err(e),
-            }
-        }
         #[ink(message)]
-        #[cfg(not(test))]
         ///Puede ser llamado solo por el contract
         pub fn verificacion_pagos_pendientes(&self) -> Result<Vec<Socio>, String> {
             match self.is_contract() {
@@ -996,16 +980,8 @@ pub mod sistema {
                 Err("No es contrato".to_string())
             }
         }
+
         #[ink(message)]
-        #[cfg(test)]
-        pub fn informe_recaudacion_mensual(&self, categoria: String) -> Result<u32, String> {
-            match self.get_nivel_permiso() {
-                Ok(_) => Ok(30),
-                Err(e) => Err(e),
-            }
-        }
-        #[ink(message)]
-        #[cfg(not(test))]
         pub fn informe_recaudacion_mensual(&self, categoria: String) -> Result<u32, String> {
             match self.is_contract() {
                 Ok(_) => {
@@ -1062,24 +1038,8 @@ pub mod sistema {
                 Err(e) => Err(e),
             }
         }
+
         #[ink(message)]
-        #[cfg(test)]
-        pub fn get_no_morosos_act(
-            &self,
-            actividad: String,
-        ) -> Result<Vec<(u32, String, String)>, String> {
-            match self.get_nivel_permiso() {
-                Ok(_) => {
-                    let dato = (30, "a".to_string(), "a".to_string());
-                    let mut vec = Vec::new();
-                    vec.push(dato);
-                    vec
-                }
-                Err(e) => Err(e),
-            }
-        }
-        #[ink(message)]
-        #[cfg(not(test))]
         pub fn get_no_morosos_act(
             &self,
             actividad: String,

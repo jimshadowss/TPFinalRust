@@ -11,21 +11,31 @@ mod report {
     ///Referencia al sistema principal
     pub struct Report {
         sistema: SistemaRef,
+        sistem: Mockeo,
     }
     #[derive(scale::Decode, scale::Encode, PartialEq, Eq, Debug, Default)]
     #[cfg_attr(
         feature = "std",
         derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
     )]
-    pub struct Socio {
+    pub struct Mockeo {
+        dato: bool,
+    }
+
+    #[derive(scale::Decode, scale::Encode, PartialEq, Eq, Debug, Default)]
+    #[cfg_attr(
+        feature = "std",
+        derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+    )]
+    pub struct SocioReport {
         pub dni: u32,
         pub nombre: String,
         pub categoria: Categorias,
     }
 
-    impl Socio {
-        fn new(dni: u32, nombre: String, categoria: Categorias) -> Socio {
-            Socio {
+    impl SocioReport {
+        fn new(dni: u32, nombre: String, categoria: Categorias) -> SocioReport {
+            SocioReport {
                 dni,
                 nombre,
                 categoria,
@@ -43,24 +53,27 @@ mod report {
         B,
         C,
     }
-
-    impl Report {
-        #[ink(constructor)]
-        pub fn new(sistema: SistemaRef) -> Self {
-            Self { sistema }
+    impl Funciones for Mockeo {
+        fn verificar_pagos_pendientes(&self) -> Result<Vec<SocioReport>, String> {
+            if self.dato {
+                let mut vec = Vec::new();
+                let socio = SocioReport::new(1, "a".to_string(), Categorias::A);
+                vec.push(socio);
+                let socio = SocioReport::new(1, "a".to_string(), Categorias::A);
+                vec.push(socio);
+                Ok(vec)
+            } else {
+                Err("No es contrato".to_string())
+            }
         }
-        #[ink(message)]
-        pub fn solicitar_permiso(&mut self) -> Result<String, String> {
-            self.sistema.solicitar_permiso(self.env().caller())
-        }
-
-        #[ink(message)]
-        pub fn verificacion_pagos_pendientes(&self) -> Result<Vec<Socio>, String> {
+    }
+    impl Funciones for SistemaRef {
+        fn verificar_pagos_pendientes(&self) -> Result<Vec<SocioReport>, String> {
             let mut vec = Vec::new();
-            match self.sistema.verificacion_pagos_pendientes() {
+            match self.verificacion_pagos_pendientes() {
                 Ok(a) => {
                     for i in a {
-                        let socio = Socio::new(
+                        let socio = SocioReport::new(
                             i.dni,
                             i.nombre,
                             match i.categoria {
@@ -76,19 +89,68 @@ mod report {
                 Err(e) => Err(e),
             }
         }
+    }
+
+    pub trait Funciones {
+        fn verificar_pagos_pendientes(&self) -> Result<Vec<SocioReport>, String>;
+    }
+
+    impl Report {
+        #[ink(constructor)]
+        pub fn new(sistema: SistemaRef) -> Self {
+            let dato = true;
+            let sistem = Mockeo { dato };
+            Self { sistema, sistem }
+        }
+        #[ink(message)]
+        pub fn solicitar_permiso(&mut self) -> Result<String, String> {
+            self.sistema.solicitar_permiso(self.env().caller())
+        }
+
+        /*#[ink(message)]
+        #[cfg(test)]
+        pub fn informe_recaudacion_mensual(&self, categoria: String) -> Result<u32, String> {
+            match self.get_nivel_permiso() {
+                Ok(_) => Ok(30),
+                Err(e) => Err(e),
+            }
+        } */
+
+        /*#[ink(message)]
+        #[cfg(test)]
+        pub fn get_no_morosos_act(
+            &self,
+            actividad: String,
+        ) -> Result<Vec<(u32, String, String)>, String> {
+            match self.get_nivel_permiso() {
+                Ok(_) => {
+                    let dato = (30, "a".to_string(), "a".to_string());
+                    let mut vec = Vec::new();
+                    vec.push(dato);
+                    vec
+                }
+                Err(e) => Err(e),
+            }
+        } */
+
+        #[ink(message)]
+        pub fn verificacion_pagos_pendientes(&self) -> Result<Vec<SocioReport>, String> {
+            let res = self.sistema.verificar_pagos_pendientes();
+            res
+        }
 
         #[ink(message)]
         pub fn informe_recaudacion_mensual(&self, categoria: String) -> Result<u32, String> {
-            match self.sistema.informe_recaudacion_mensual(categoria) {
-                Ok(a) => Ok(a),
-                Err(e) => Err(e),
+            match &self.sistema.informe_recaudacion_mensual(categoria) {
+                Ok(a) => Ok(*a),
+                Err(e) => Err(e.clone()),
             }
         }
         #[ink(message)]
         pub fn informe_socios_no_morosos_actividad(
             &self,
             actividad: String,
-        ) -> Result<Vec<Socio>, String> {
+        ) -> Result<Vec<SocioReport>, String> {
             let aux = self.sistema.get_no_morosos_act(actividad);
             let mut vec = Vec::new();
             match aux {
@@ -103,7 +165,7 @@ mod report {
                         } else {
                             break;
                         };
-                        let socio = Socio::new(i.0, i.1, aux);
+                        let socio = SocioReport::new(i.0, i.1, aux);
                         vec.push(socio);
                     }
                     Ok(vec)
