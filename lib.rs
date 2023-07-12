@@ -8,8 +8,8 @@ mod report {
     use ink::prelude::*;
     use sistema::SistemaRef;
 
-    #[ink(storage)]
     ///Referencia al sistema principal
+    #[ink(storage)]
     pub struct Report {
         #[cfg(not(test))]
         sistema: SistemaRef,
@@ -141,6 +141,7 @@ mod report {
                 sistem,
             }
         }
+        ///El report solicita permiso para poder recopilar la informacion de manera segura, siempre lo debe ejecutar el dueño del sistema luego de instanciar el report
         #[ink(message)]
         #[cfg(not(test))]
         pub fn solicitar_permiso(&mut self) -> Result<String, String> {
@@ -151,6 +152,7 @@ mod report {
         fn verificacion_pagos_pendientes_with_mock(&self) -> Result<Vec<SocioReport>, String> {
             self.verificacion_pagos_pendientes2(self.sistem.verificar_pagos_pendientes())
         }
+        ///Muestra una lista de socios que tienen pagos pendientes ya vencidos
         #[ink(message)]
         #[cfg(not(test))]
         pub fn verificacion_pagos_pendientes(&self) -> Result<Vec<SocioReport>, String> {
@@ -182,7 +184,7 @@ mod report {
             }
             res
         }
-
+        ///Muestra el monto total de la recaudacion mensual de una categoria dada (A, B o C)
         #[ink(message)]
         #[cfg(not(test))]
         pub fn informe_recaudacion_mensual(&self, categoria: String) -> Result<u32, String> {
@@ -200,6 +202,7 @@ mod report {
                 self.sistem.get_no_morosos_act_report(actividad),
             )
         }
+        ///Muestra una lista de socios no morosos, que tengan acceso a una actividad especifica dada (Futbol, Gimnasio, Basquet, Rugby, Hockey, Natacion, Tenis o Paddle)
         #[ink(message)]
         #[cfg(not(test))]
         pub fn informe_socios_no_morosos_actividad(
@@ -295,7 +298,7 @@ mod report {
             let res = rep.informe_socios_no_morosos_actividad_with_mock("OtraCosa".to_string());
 
             match res {
-                Ok(a) => assert!(false),
+                Ok(_) => assert!(false),
                 Err(e) => assert!(e.eq("No es una actividad válida")),
             }
         }

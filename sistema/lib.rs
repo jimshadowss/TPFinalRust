@@ -574,10 +574,7 @@ pub mod sistema {
             }
             (permiso, si, no)
         }
-        #[ink(message)]
-        pub fn get_owner(&self) -> Owner {
-            self.owner.clone()
-        }
+        
         #[ink(message)]
         pub fn solicitar_permiso(&mut self, id: AccountId) -> Result<String, String> {
             if let Some(a) = self.owner.id {
@@ -823,6 +820,7 @@ pub mod sistema {
                 }
             }
         }
+        ///Solo para poder controlar el funcionamiento de los vencimientos de fechas sin, puede llamarlo cualquiera. Agrega un socio de la misma forma que agregarSocio pero con la proxima fecha de pago ya vencida
         #[ink(message)]
         pub fn agregar_socio_moroso(
             &mut self,
@@ -933,7 +931,7 @@ pub mod sistema {
         }
 
         #[ink(message)]
-        ///Puede ser llamado solo por el contract
+        ///Puede ser llamado solo por el contract report
         pub fn verificacion_pagos_pendientes(&self) -> Result<Vec<(u32, String, String)>, String> {
             match self.is_contract() {
                 Ok(_) => {
@@ -974,7 +972,7 @@ pub mod sistema {
                 Err("No es contrato".to_string())
             }
         }
-
+        ///puede ser llamado solo por el contract report
         #[ink(message)]
         pub fn informe_recaudacion_mensual(&self, categoria: String) -> Result<u32, String> {
             match self.is_contract() {
@@ -1032,7 +1030,7 @@ pub mod sistema {
                 Err(e) => Err(e),
             }
         }
-
+        ///Puede ser llamado solo por el contract report
         #[ink(message)]
         pub fn get_no_morosos_act(
             &self,
@@ -1183,12 +1181,12 @@ pub mod sistema {
             res
         }
 
-        ///todos pueden llamar a get_politica, muestra si la politica de permisos esta activada
+        ///Todos pueden llamar a get_politica, muestra si la politica de permisos esta activada
         #[ink(message)]
         pub fn get_politica(&self) -> bool {
             self.permisos_privados
         }
-        ///Solo el owner puede llamar a set_politica, desactiva la politica de permisos
+        ///Solo el owner puede llamar a set_politica, cambia la politica de permisos
         #[ink(message)]
         pub fn set_politica(&mut self, politica: bool) -> bool {
             let res = self.get_nivel_permiso();
