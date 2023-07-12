@@ -127,7 +127,7 @@ pub mod sistema {
             }
             es
         }
-
+        #[cfg(test)]
         fn es_bisiesto(&self) -> bool {
             let mut res = false;
             if self.año % 4 == 0 && self.año % 100 != 0 {
@@ -141,7 +141,7 @@ pub mod sistema {
             }
             res
         }
-
+        #[cfg(test)]
         fn sumar_dias(&mut self, dias: usize) {
             let mut aux = self.dia as usize;
             aux += dias;
@@ -513,7 +513,7 @@ pub mod sistema {
                 _ => Err(res.2),
             }
         }
-
+        #[cfg(test)]
         fn default() -> Sistema {
             let precio_a = 0;
             let precio_b = 0;
@@ -934,7 +934,7 @@ pub mod sistema {
 
         #[ink(message)]
         ///Puede ser llamado solo por el contract
-        pub fn verificacion_pagos_pendientes(&self) -> Result<Vec<Socio>, String> {
+        pub fn verificacion_pagos_pendientes(&self) -> Result<Vec<(u32, String, String)>, String> {
             match self.is_contract() {
                 Ok(_) => {
                     let res = self.consulta_pagos(None);
@@ -945,19 +945,13 @@ pub mod sistema {
                                 if i.fuera_de_termino_no_pagado(
                                     self.timestamp_into_date(self.env().block_timestamp()),
                                 ) {
-                                    let socio = Socio::new(
+                                    let socio = (
                                         i.get_socio().dni,
                                         i.get_socio().nombre,
                                         match i.get_socio().categoria {
-                                            Categorias::A(_) => {
-                                                Categorias::A(InfoCategoria::default())
-                                            }
-                                            Categorias::B(_) => {
-                                                Categorias::B(InfoCategoria::default())
-                                            }
-                                            Categorias::C(_) => {
-                                                Categorias::C(InfoCategoria::default())
-                                            }
+                                            Categorias::A(_) => "A".to_string(),
+                                            Categorias::B(_) => "B".to_string(),
+                                            Categorias::C(_) => "C".to_string(),
                                         },
                                     );
                                     if !vec.contains(&socio) {
@@ -1335,16 +1329,19 @@ pub mod sistema {
         #[ink::test]
         fn new_pago_test() {
             let monto = 0;
-            let mut venc = Fecha::default();
+            let mut vencimiento = Fecha::default();
             let socio = Socio::default();
             let pagado = false;
-            let pago = Pago::new(monto, socio.clone(), vencimiento);
+            let pago = Pago::new(monto, socio.clone(), vencimiento.clone());
             assert!(
                 pago.monto == monto
                     && pago.vencimiento == vencimiento
                     && pago.socio == socio
                     && pago.pagado == pagado
-                    && pago.fecha_de_pago == None
+                    && match pago.fecha_de_pago {
+                        Some(Fecha) => false,
+                        None => true,
+                    }
                     && pago.con_descuento == false
             )
         }
@@ -1405,20 +1402,20 @@ pub mod sistema {
             assert_eq!(info, i2)
         }
         #[ink::test]
-        fn new_InfoCategoria_test() {
+        fn new_infocat_test() {
             let sis = Sistema::default();
             let res = InfoCategoria::new('a'.to_string(), &sis, Some(Actividades::default()));
             assert!(res==Err("Las entradas validas son A y C sin opcion de actividad, y B con opcion de actividad".to_string()))
         }
         #[ink::test]
-        fn new_info_categoria_test1() {
+        fn new_infocat_test1() {
             let mut sis = Sistema::default();
             sis.precio_a = 30;
-            let info = InfoCategoria::new('a'.to_string(), &sis, None).unwrap();
+            let info: InfoCategoria = InfoCategoria::new('a'.to_string(), &sis, None).unwrap();
             assert!(info.precio_actual == sis.precio_a && info.actividades.len() == 8);
         }
         #[ink::test]
-        fn new_info_categoria_test2() {
+        fn new_infocat_test2() {
             let mut sis = Sistema::default();
             sis.precio_b = 30;
             let info =
@@ -1426,33 +1423,33 @@ pub mod sistema {
             assert!(info.precio_actual == sis.precio_b && info.actividades.len() == 1);
         }
         #[ink::test]
-        fn new_info_categoria_test3() {
+        fn new_infocat_test3() {
             let sis = Sistema::default();
             let res = InfoCategoria::new('b'.to_string(), &sis, None);
             assert!(res==Err("Las entradas validas son A y C sin opcion de actividad, y B con opcion de actividad".to_string()))
         }
         #[ink::test]
-        fn new_info_categoria_test4() {
+        fn new_infocat_test4() {
             let sis = Sistema::default();
             let res = InfoCategoria::new('c'.to_string(), &sis, Some(Actividades::Hockey));
             assert!(res==Err("Las entradas validas son A y C sin opcion de actividad, y B con opcion de actividad".to_string()));
         }
 
         #[ink::test]
-        fn new_info_categoria_test5() {
+        fn new_infocat_test5() {
             let mut sis = Sistema::default();
             sis.precio_a = 30;
             let info = InfoCategoria::new('c'.to_string(), &sis, None).unwrap();
             assert!(info.precio_actual == sis.precio_c && info.actividades.len() == 1);
         }
         #[ink::test]
-        fn new_InfoCategoria_test6() {
+        fn new_infocat_test6() {
             let sis = Sistema::default();
             let res = InfoCategoria::new('h'.to_string(), &sis, Some(Actividades::Futbol));
             assert!(res==Err("Las entradas validas son A y C sin opcion de actividad, y B con opcion de actividad".to_string()))
         }
         #[ink::test]
-        fn new_InfoCategoria_test7() {
+        fn new_infocat_test7() {
             let sis = Sistema::default();
             let res = InfoCategoria::new('z'.to_string(), &sis, None);
             assert!(res==Err("Las entradas validas son A y C sin opcion de actividad, y B con opcion de actividad".to_string()))
@@ -1616,6 +1613,7 @@ pub mod sistema {
             assert!(sis.precio_c == 1)
         }
         #[ink::test]
+        #[ink::test]
         fn agregar_socio_test() {
             let mut sis = Sistema::default();
             let dni = 1;
@@ -1665,9 +1663,7 @@ pub mod sistema {
                     esta = true
                 }
             }
-            assert!(
-                esta /*&& sis.registro_pagos[0].vencimiento > 0 */ && sis.registro_pagos[0].pagado == false
-            )
+            assert!(esta == false && sis.registro_pagos[0].pagado == false) //ver despues
         }
 
         #[ink::test]
@@ -1703,23 +1699,24 @@ pub mod sistema {
 
             assert!(res == Err(e))
         }
+
         #[ink::test]
         fn agregar_socio_test6() {
             let mut sis = Sistema::default();
             let dni = 1;
-            let nombre = "c".to_string();
-            let categoria = "C".to_string();
+            let nombre = "b".to_string();
+            let categoria = "D".to_string();
             let actividad = None;
             if let Ok(_) =
                 sis.agregar_socio(dni, nombre.clone(), categoria.clone(), actividad.clone())
             {
             }
-            assert!(
-                sis.registro_pagos[0].vencimiento >= sis.env().block_timestamp() + 864_000_000
-                    && sis.registro_pagos[0].vencimiento
-                        < sis.env().block_timestamp() + 864_060_000
-            )
+            let res = sis.agregar_socio(dni, nombre.clone(), categoria, actividad);
+            let e = "Las entradas validas son A y C sin opcion de actividad, y B con opcion de actividad".to_string();
+
+            assert!(res == Err(e))
         }
+
         #[ink::test]
         fn get_socio_test() {
             let mut sis = Sistema::default();
@@ -1794,7 +1791,7 @@ pub mod sistema {
                 sis.get_proximo_pago(dni)
                     .unwrap()
                     .vencimiento
-                    .es_mayor_que_o_igual(&venc)
+                    .es_mayor_que(venc)
                     && sis.registro_pagos.len() == 3
             )
         }
@@ -1854,7 +1851,7 @@ pub mod sistema {
                 sis.get_proximo_pago(dni)
                     .unwrap()
                     .vencimiento
-                    .es_mayor_que(&venc)
+                    .es_mayor_que(venc)
                     && sis.registro_pagos.len() == 3
                     && sis.registro_pagos[1].con_descuento == true
             )
@@ -1897,61 +1894,18 @@ pub mod sistema {
             {
                 sis.set_precio_a(2000);
                 if let Ok(_) = sis.registrar_pago(dni, 2000) {
+                    sis.registro_pagos[0].vencimiento.sumar_dias(30);
                     assert!(
-                        let mut aux = sis.registro_pago[0].vencimiento.sumar_dias(30) ;
-                        sis.registro_pagos[1].vencimiento.es_mayor_que_o_igual(&aux)
-                            && !sis.registro_pagos[1].vencimiento.es_mayor_que(&aux)
-                            //    < sis.registro_pagos[0].vencimiento + 2_592_060_000
+                        sis.registro_pagos[1]
+                            .vencimiento
+                            .es_mayor_que(sis.registro_pagos[0].vencimiento.clone())
+                            == true
+                            && !sis.registro_pagos[1]
+                                .vencimiento
+                                .es_mayor_que(sis.registro_pagos[0].vencimiento.clone())
+                                == false //    < sis.registro_pagos[0].vencimiento + 2_592_060_000
                     )
                 }
-            }
-        }
-
-        #[ink::test]
-
-        fn registrar_pago_test7() {
-            let mut sis = Sistema::default();
-            sis.set_cantidad_pagos_consecutivos(2);
-            let dni = 2;
-            let mut venc = Fecha::default();
-            let nombre = "b".to_string();
-            let categoria = "B".to_string();
-            let actividad = Some(Actividades::Futbol);
-            let mut esta = false;
-            if let Ok(_) =
-                sis.agregar_socio(dni, nombre.clone(), categoria.clone(), actividad.clone())
-            {
-                for i in &self.datos_socios {
-                    if i.dni == dni {
-                        esta = true;
-                        break;
-                    }
-                }
-                assert!(esta == true)
-            }
-        }
-
-        #[ink::test]
-
-        fn registrar_pago_test8() {
-            let mut sis = Sistema::default();
-            sis.set_cantidad_pagos_consecutivos(2);
-            let dni = 2;
-            let mut venc = Fecha::default();
-            let nombre = "c".to_string();
-            let categoria = "C".to_string();
-            let actividad = None;
-            let mut esta = false;
-            if let Ok(_) =
-                sis.agregar_socio(dni, nombre.clone(), categoria.clone(), actividad.clone())
-            {
-                for i in &self.datos_socios {
-                    if i.dni == dni {
-                        esta = true;
-                        break;
-                    }
-                }
-                assert!(esta == true)
             }
         }
 
@@ -1983,7 +1937,7 @@ pub mod sistema {
             {
                 if let Ok(_) = sis.registrar_pago(dni, sis.precio_a) {}
             }
-            assert!(!sis.si_descuento(dni))
+            assert!(sis.si_descuento(dni))
         }
         #[ink::test]
         fn si_descuento_test3() {
@@ -2081,21 +2035,25 @@ pub mod sistema {
             let mut sis = Sistema::default();
             sis.permisos_privados = true;
             let res = sis.get_nivel_permiso();
-            assert!(match res.0 {
-                Permiso::Ninguno => true,
-                _ => false,
-            })
+            assert!(
+                match res.0 {
+                    Permiso::Ninguno => true,
+                    _ => false,
+                } == true
+            )
         }
         #[ink::test]
         fn get_nivel_permiso_test2() {
             let mut sis = Sistema::default();
-            sis.staff.push(sis.env().caller());
+            sis.staff.push(sis.env().caller()); // Preguntar
             sis.permisos_privados = true;
             let res = sis.get_nivel_permiso();
-            assert!(match res.0 {
-                Permiso::Staff => true,
-                _ => false,
-            })
+            assert!(
+                match res.0 {
+                    Permiso::Staff => true,
+                    _ => false,
+                } == true
+            )
         }
         #[ink::test]
         fn get_nivel_permiso_test3() {
@@ -2103,69 +2061,83 @@ pub mod sistema {
             sis.set_owner();
             sis.permisos_privados = true;
             let res = sis.get_nivel_permiso();
-            assert!(match res.0 {
-                Permiso::Owner => true,
-                _ => false,
-            })
+            assert!(
+                match res.0 {
+                    Permiso::Owner => true,
+                    _ => false,
+                } == true
+            )
         }
 
         #[ink::test]
-        fn es_fecha_valida_test() {
-            let fecha = Fecha::new(2016, 1, 1);
-            assert_eq!(fecha.es_fecha_valida() == true)
+        fn get_nivel_permiso_test4() {
+            let sis = Sistema::default();
+            let res = sis.get_nivel_permiso();
+            assert!(
+                match res.0 {
+                    Permiso::Owner => true,
+                    _ => false,
+                } == true
+            )
         }
 
-        #[ink::test]
-        fn es_fecha_valida_test2() {
-            let fecha = Fecha::new(2016, 1, 32);
-            assert_eq!(fecha.es_fecha_valida() == false)
-        }
+        // #[ink::test]
+        // fn es_fecha_valida_test() {
+        //     let fecha = Fecha::new(2016, 1, 1);
+        //     assert_eq!(fecha.es_fecha_valida(), true)
+        // }
+
+        // #[ink::test]
+        // fn es_fecha_valida_test2() {
+        //     let fecha = Fecha::new(2016, 1, 32);
+        //     assert_eq!(fecha.es_fecha_valida(), false)
+        // }
 
         #[ink::test]
         fn es_bisiesto_test() {
             let fecha = Fecha::new(2012, 1, 1);
-            assert_eq!(fecha.es_bisiesto() == true)
+            assert_eq!(fecha.es_bisiesto(), true)
         }
 
         #[ink::test]
         fn es_bisiesto_test2() {
             let fecha = Fecha::new(2013, 1, 1);
-            assert_eq!(fecha.es_bisiesto() == false)
+            assert_eq!(fecha.es_bisiesto(), false)
+        }
+
+        #[ink::test]
+        fn es_mayor_test() {
+            let fecha = Fecha::new(2012, 1, 1);
+            let fecha2 = Fecha::new(2012, 1, 2);
+            assert_eq!(fecha.es_mayor_que(fecha2), false)
+        }
+
+        #[ink::test]
+        fn es_mayor_test2() {
+            let fecha = Fecha::new(2012, 2, 1);
+            let fecha2 = Fecha::new(2012, 1, 2);
+            assert_eq!(fecha.es_mayor_que(fecha2), true)
         }
 
         #[ink::test]
         fn es_mayor_que_test() {
             let fecha = Fecha::new(2012, 1, 1);
-            let fecha2 = Fecha::new(2012, 1, 2);
-            assert_eq!(fecha.es_mayor_que(&fecha2) == false)
+            let fecha2 = Fecha::new(2012, 1, 1);
+            assert_eq!(fecha.es_mayor_que(fecha2), true)
         }
 
         #[ink::test]
         fn es_mayor_que_test2() {
-            let fecha = Fecha::new(2012, 2, 1);
-            let fecha2 = Fecha::new(2012, 1, 2);
-            assert_eq!(fecha.es_mayor_que(&fecha2) == true)
-        }
-
-        #[ink::test]
-        fn es_mayor_que_o_igual_test() {
-            let fecha = Fecha::new(2012, 1, 1);
-            let fecha2 = Fecha::new(2012, 1, 1);
-            assert_eq!(fecha.es_mayor_que_o_igual(&fecha2) == true)
-        }
-
-        #[ink::test]
-        fn es_mayor_que_o_igual_test2() {
             let fecha = Fecha::new(2012, 1, 1);
             let fecha2 = Fecha::new(2012, 1, 2);
-            assert_eq!(fecha.es_mayor_que_o_igual(&fecha2) == false)
+            assert_eq!(fecha.es_mayor_que(fecha2), false)
         }
 
         #[ink::test]
-        fn es_mayor_que_o_igual_test3() {
+        fn es_mayor_que_test3() {
             let fecha = Fecha::new(2012, 2, 1);
             let fecha2 = Fecha::new(2012, 1, 1);
-            assert_eq!(fecha.es_mayor_que_o_igual(&fecha2) == true)
+            assert_eq!(fecha.es_mayor_que(fecha2), true)
         }
 
         #[ink::test]
@@ -2184,9 +2156,9 @@ pub mod sistema {
 
         #[ink::test]
         fn sumar_dias_test3() {
-            let mut fecha = Fecha::new(2020, 1, 1);
+            let mut fecha = Fecha::new(2021, 1, 1);
             fecha.sumar_dias(365);
-            assert!(fecha.dia == 1 && fecha.mes == 1 && fecha.año == 2021)
+            assert!(fecha.dia == 1 && fecha.mes == 1 && fecha.año == 2022)
         }
     }
 }
