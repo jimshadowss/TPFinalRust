@@ -117,6 +117,7 @@ mod report {
     }
 
     impl Report {
+        ///Se instancia con referencia del struct Sistema
         #[ink(constructor)]
         #[cfg(not(test))]
         pub fn new(sistema: SistemaRef) -> Self {

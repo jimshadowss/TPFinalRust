@@ -574,7 +574,7 @@ pub mod sistema {
             }
             (permiso, si, no)
         }
-        
+        ///solo puede ser llamado por el contract report
         #[ink(message)]
         pub fn solicitar_permiso(&mut self, id: AccountId) -> Result<String, String> {
             if let Some(a) = self.owner.id {
@@ -1024,7 +1024,7 @@ pub mod sistema {
                             Err(e) => Err(e),
                         }
                     } else {
-                        Err("Caracter incorrecto".to_string())
+                        Err("Caracter incorrecto, las categorias son: A, B o C".to_string())
                     }
                 }
                 Err(e) => Err(e),
@@ -1086,7 +1086,7 @@ pub mod sistema {
                     Err(e) => Err(e),
                 }
             } else {
-                Err("No es una actividad válida".to_string())
+                Err("No es una actividad válida, las actividades son: Futbol, Gimnasio, Basquet, Rugby, Hockey, Natacion, Tenis o Paddle".to_string())
             }
         }
         ///Para uso interno, checkea si corresponde descuento en el proximo pago a un dni
