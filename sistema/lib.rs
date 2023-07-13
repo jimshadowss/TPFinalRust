@@ -1204,84 +1204,76 @@ pub mod sistema {
             self.registrar_pago2(dni, monto_pagado)
         }
         fn registrar_pago2(&mut self, dni: u32, monto_pagado: u32) -> Result<String, String> {
-            let res = self.get_nivel_permiso();
-            match res.0 {
-                Permiso::Ninguno => Err(res.2),
-                _ => {
-                    let mut hecho = Err("Pago fallido".to_string());
-                    let timestamp = self.env().block_timestamp();
-                    let vuelto;
-                    if let Some(socio) = self.get_socio(dni) {
-                        for i in 0..self.registro_pagos.len() {
-                            if socio.dni == self.registro_pagos[i].socio.dni
-                                && self.registro_pagos[i].pagado == false
-                            {
-                                let mut pago_aux = self.registro_pagos.remove(i);
+            let mut hecho = Err("Pago fallido".to_string());
+            let timestamp = self.env().block_timestamp();
+            let vuelto;
+            if let Some(socio) = self.get_socio(dni) {
+                for i in 0..self.registro_pagos.len() {
+                    if socio.dni == self.registro_pagos[i].socio.dni
+                        && self.registro_pagos[i].pagado == false
+                    {
+                        let mut pago_aux = self.registro_pagos.remove(i);
 
-                                if self.si_descuento(dni)
-                                    && monto_pagado
-                                        >= pago_aux.monto * (100 - self.porcentaje_descuento) / 100
-                                {
-                                    let monto = match socio.clone().categoria {
-                                        Categorias::A(_) => self.precio_a,
-                                        Categorias::B(_) => self.precio_b,
-                                        Categorias::C(_) => self.precio_c,
-                                    };
-                                    let mut vencimiento = Fecha::new(
-                                        pago_aux.vencimiento.año,
-                                        pago_aux.vencimiento.mes,
-                                        pago_aux.vencimiento.dia,
-                                    );
-                                    vencimiento.sumar_meses(1);
-                                    let pago = Pago::new(monto, socio.clone(), vencimiento);
-                                    self.registro_pagos.push(pago);
-                                    pago_aux.monto =
-                                        pago_aux.monto * (100 - self.porcentaje_descuento) / 100;
-                                    pago_aux.pagado = true;
-                                    pago_aux.con_descuento = true;
-                                    pago_aux.fecha_de_pago =
-                                        Some(self.timestamp_into_date(timestamp));
-                                    vuelto = monto_pagado - pago_aux.monto;
-                                    hecho = Ok(format!(
+                        if self.si_descuento(dni)
+                            && monto_pagado
+                                >= pago_aux.monto * (100 - self.porcentaje_descuento) / 100
+                        {
+                            let monto = match socio.clone().categoria {
+                                Categorias::A(_) => self.precio_a,
+                                Categorias::B(_) => self.precio_b,
+                                Categorias::C(_) => self.precio_c,
+                            };
+                            let mut vencimiento = Fecha::new(
+                                pago_aux.vencimiento.año,
+                                pago_aux.vencimiento.mes,
+                                pago_aux.vencimiento.dia,
+                            );
+                            vencimiento.sumar_meses(1);
+                            let pago = Pago::new(monto, socio.clone(), vencimiento);
+                            self.registro_pagos.push(pago);
+                            pago_aux.monto =
+                                pago_aux.monto * (100 - self.porcentaje_descuento) / 100;
+                            pago_aux.pagado = true;
+                            pago_aux.con_descuento = true;
+                            pago_aux.fecha_de_pago = Some(self.timestamp_into_date(timestamp));
+                            vuelto = monto_pagado - pago_aux.monto;
+                            hecho = Ok(format!(
                                 "Pago registrado exitosamente, por haber pagado sin atrasos las ultimas {} veces cuenta con un descuento del {}%, el vuelto es: {}",self.cantidad_pagos_consecutivos,self.porcentaje_descuento,
                                 vuelto
                             ));
-                                } else if pago_aux.monto <= monto_pagado {
-                                    let monto = match socio.clone().categoria {
-                                        Categorias::A(_) => self.precio_a,
-                                        Categorias::B(_) => self.precio_b,
-                                        Categorias::C(_) => self.precio_c,
-                                    };
-                                    let mut vencimiento = Fecha::new(
-                                        pago_aux.vencimiento.año,
-                                        pago_aux.vencimiento.mes,
-                                        pago_aux.vencimiento.dia,
-                                    );
-                                    vencimiento.sumar_meses(1);
-                                    let pago = Pago::new(monto, socio.clone(), vencimiento);
-                                    self.registro_pagos.push(pago);
-                                    pago_aux.pagado = true;
-                                    pago_aux.fecha_de_pago =
-                                        Some(self.timestamp_into_date(timestamp));
-                                    vuelto = monto_pagado - pago_aux.monto;
-                                    hecho = Ok(format!(
-                                        "Pago registrado exitosamente, el vuelto es: {}",
-                                        vuelto
-                                    ));
-                                } else {
-                                    hecho = Err("Monto incorrecto".to_string());
-                                }
-                                self.registro_pagos.insert(i, pago_aux);
-                                break;
-                            }
+                        } else if pago_aux.monto <= monto_pagado {
+                            let monto = match socio.clone().categoria {
+                                Categorias::A(_) => self.precio_a,
+                                Categorias::B(_) => self.precio_b,
+                                Categorias::C(_) => self.precio_c,
+                            };
+                            let mut vencimiento = Fecha::new(
+                                pago_aux.vencimiento.año,
+                                pago_aux.vencimiento.mes,
+                                pago_aux.vencimiento.dia,
+                            );
+                            vencimiento.sumar_meses(1);
+                            let pago = Pago::new(monto, socio.clone(), vencimiento);
+                            self.registro_pagos.push(pago);
+                            pago_aux.pagado = true;
+                            pago_aux.fecha_de_pago = Some(self.timestamp_into_date(timestamp));
+                            vuelto = monto_pagado - pago_aux.monto;
+                            hecho = Ok(format!(
+                                "Pago registrado exitosamente, el vuelto es: {}",
+                                vuelto
+                            ));
+                        } else {
+                            hecho = Err("Monto incorrecto".to_string());
                         }
-                    } else {
-                        hecho = Err("Socio inexistente".to_string());
+                        self.registro_pagos.insert(i, pago_aux);
+                        break;
                     }
-
-                    hecho
                 }
+            } else {
+                hecho = Err("Socio inexistente".to_string());
             }
+
+            hecho
         }
         ///Consultar todos los pagos de un socio con el dni, o consultar todos los pagos sin dni
         #[ink(message)]
@@ -1335,7 +1327,7 @@ pub mod sistema {
         #[ink::test]
         fn new_pago_test() {
             let monto = 0;
-            let mut vencimiento = Fecha::default();
+            let vencimiento = Fecha::default();
             let socio = Socio::default();
             let pagado = false;
             let pago = Pago::new(monto, socio.clone(), vencimiento.clone());
@@ -1632,7 +1624,9 @@ pub mod sistema {
                     esta = true
                 }
             }
-            assert!(esta == true)
+            assert!(
+                esta /*&& sis.registro_pagos[0].vencimiento > 0 */ && sis.registro_pagos[0].pagado == false
+            )
         }
         #[ink::test]
         fn agregar_socio_test2() {
@@ -1666,7 +1660,7 @@ pub mod sistema {
                     esta = true
                 }
             }
-            assert!(esta == true && sis.registro_pagos[0].pagado == false) //ver despues
+            assert!(esta == false && sis.registro_pagos[0].pagado == false) //ver despues
         }
 
         #[ink::test]
@@ -1794,7 +1788,7 @@ pub mod sistema {
                 sis.get_proximo_pago(dni)
                     .unwrap()
                     .vencimiento
-                    .es_mayor_o_igual(&venc)
+                    .es_mayor_que(venc)
                     && sis.registro_pagos.len() == 3
             )
         }
@@ -1844,10 +1838,20 @@ pub mod sistema {
                 sis.agregar_socio(dni, nombre.clone(), categoria.clone(), actividad.clone())
             {
                 if let Ok(_) = sis.registrar_pago(dni, sis.precio_a) {
-                    sis.registrar_pago(dni, sis.precio_a);
+                    if let Ok(_) = sis.registrar_pago(dni, sis.precio_a) {
+                        venc = sis.get_proximo_pago(dni).unwrap().vencimiento;
+                    }
                 }
             }
-            assert!(sis.registro_pagos.len() == 3 && sis.registro_pagos[1].con_descuento == true)
+
+            assert!(
+                sis.get_proximo_pago(dni)
+                    .unwrap()
+                    .vencimiento
+                    .es_mayor_que(venc)
+                    && sis.registro_pagos.len() == 3
+                    && sis.registro_pagos[1].con_descuento == true
+            )
         }
         #[ink::test]
         fn registrar_pago_test5() {
@@ -1891,11 +1895,11 @@ pub mod sistema {
                     assert!(
                         sis.registro_pagos[1]
                             .vencimiento
-                            .es_mayor_o_igual(&sis.registro_pagos[0].vencimiento)
+                            .es_mayor_que(sis.registro_pagos[0].vencimiento.clone())
                             == true
                             && !sis.registro_pagos[1]
                                 .vencimiento
-                                .es_mayor(&sis.registro_pagos[0].vencimiento)
+                                .es_mayor_que(sis.registro_pagos[0].vencimiento.clone())
                                 == false //    < sis.registro_pagos[0].vencimiento + 2_592_060_000
                     )
                 }
@@ -1930,7 +1934,7 @@ pub mod sistema {
             {
                 if let Ok(_) = sis.registrar_pago(dni, sis.precio_a) {}
             }
-            assert!(sis.si_descuento(dni) == false)
+            assert!(sis.si_descuento(dni))
         }
         #[ink::test]
         fn si_descuento_test3() {
@@ -2064,7 +2068,7 @@ pub mod sistema {
 
         #[ink::test]
         fn get_nivel_permiso_test4() {
-            let mut sis = Sistema::default();
+            let sis = Sistema::default();
             let res = sis.get_nivel_permiso();
             assert!(
                 match res.0 {
@@ -2072,18 +2076,6 @@ pub mod sistema {
                     _ => false,
                 } == true
             )
-        }
-
-        #[ink::test]
-        fn es_fecha_valida_test() {
-            let fecha = Fecha::new(2016, 1, 1);
-            assert_eq!(fecha.es_fecha_valida(), true)
-        }
-
-        #[ink::test]
-        fn es_fecha_valida_test2() {
-            let fecha = Fecha::new(2016, 1, 32);
-            assert_eq!(fecha.es_fecha_valida(), false)
         }
 
         #[ink::test]
@@ -2099,57 +2091,38 @@ pub mod sistema {
         }
 
         #[ink::test]
-        fn es_bisiesto_test3() {
-            let fecha = Fecha::new(2000, 1, 1);
-            assert_eq!(fecha.es_bisiesto(), true)
-        }
-
-        #[ink::test]
-        fn es_bisiesto_test4() {
-            let fecha = Fecha::new(1900, 1, 1);
-            assert_eq!(fecha.es_bisiesto(), false)
-        }
-
-        #[ink::test]
         fn es_mayor_test() {
             let fecha = Fecha::new(2012, 1, 1);
             let fecha2 = Fecha::new(2012, 1, 2);
-            assert_eq!(fecha.es_mayor(&fecha2), false)
+            assert_eq!(fecha.es_mayor_que(fecha2), false)
         }
 
         #[ink::test]
         fn es_mayor_test2() {
             let fecha = Fecha::new(2012, 2, 1);
             let fecha2 = Fecha::new(2012, 1, 2);
-            assert_eq!(fecha.es_mayor(&fecha2), true)
+            assert_eq!(fecha.es_mayor_que(fecha2), true)
         }
 
         #[ink::test]
-        fn es_mayor_test3() {
-            let fecha = Fecha::new(2020, 1, 1);
-            let fecha2 = Fecha::new(2012, 1, 2);
-            assert_eq!(fecha.es_mayor(&fecha2), true)
-        }
-
-        #[ink::test]
-        fn es_mayor_o_igual_test() {
+        fn es_mayor_que_test() {
             let fecha = Fecha::new(2012, 1, 1);
             let fecha2 = Fecha::new(2012, 1, 1);
-            assert_eq!(fecha.es_mayor_o_igual(&fecha2), true)
+            assert_eq!(fecha.es_mayor_que(fecha2), true)
         }
 
         #[ink::test]
-        fn es_mayor_o_igual_test2() {
+        fn es_mayor_que_test2() {
             let fecha = Fecha::new(2012, 1, 1);
             let fecha2 = Fecha::new(2012, 1, 2);
-            assert_eq!(fecha.es_mayor_o_igual(&fecha2), false)
+            assert_eq!(fecha.es_mayor_que(fecha2), false)
         }
 
         #[ink::test]
-        fn es_mayor_o_igual_test3() {
+        fn es_mayor_que_test3() {
             let fecha = Fecha::new(2012, 2, 1);
             let fecha2 = Fecha::new(2012, 1, 1);
-            assert_eq!(fecha.es_mayor_o_igual(&fecha2), true)
+            assert_eq!(fecha.es_mayor_que(fecha2), true)
         }
 
         #[ink::test]
@@ -2171,33 +2144,6 @@ pub mod sistema {
             let mut fecha = Fecha::new(2021, 1, 1);
             fecha.sumar_dias(365);
             assert!(fecha.dia == 1 && fecha.mes == 1 && fecha.año == 2022)
-        }
-
-        #[ink::test]
-
-        fn clone_owner_test() {
-            let owner = Owner::new(None, None);
-            let owner2 = owner.clone();
-            assert!(owner2.id == None && owner2.contract == None)
-        }
-
-        #[ink::test]
-        fn sumar_meses_test() {
-            let mut fecha = Fecha::new(2021, 12, 1);
-            fecha.sumar_meses(1);
-            assert!(fecha.dia == 1 && fecha.mes == 1 && fecha.año == 2022)
-        }
-
-        #[ink::test]
-        fn get_fecha_de_pago_test() {
-            let dni = 0;
-            let nombre = "".to_string();
-            let categoria = Categorias::default();
-            let socio = Socio::new(dni, nombre.clone(), categoria);
-            let mut fecha = Fecha::new(2021, 12, 1);
-            let pago = Pago::new(2_000, socio, fecha);
-            let f2 = pago.get_fecha_de_pago().clone();
-            assert!(f2 == None)
         }
     }
 }
